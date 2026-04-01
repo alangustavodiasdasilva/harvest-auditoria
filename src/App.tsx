@@ -386,8 +386,8 @@ function App() {
                </td>
                <td>
                   <span className={`status-badge ${
-                     carga.resultadoTeste.toLowerCase().includes('positiva') ? 'bg-red' : 
-                     carga.resultadoTeste.toLowerCase().includes('negativa') ? 'bg-green' : 
+                     carga.resultadoTeste.toLowerCase().includes('positiva') ? 'bg-green' : 
+                     carga.resultadoTeste.toLowerCase().includes('negativa') ? 'bg-red' : 
                      carga.resultadoTeste.toLowerCase().includes('declarada') ? 'bg-gray' : 'bg-blue'
                   }`}>
                     {carga.resultadoTeste}
