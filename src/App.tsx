@@ -88,7 +88,7 @@ function App() {
     const cnpj = parts[1] ? parts[1].replace(')', '') : '';
     if (cnpj.length >= 5) {
       const suffix = cnpj.slice(-5);
-      return <><MapPin size={14}/> {nome} <span style={{fontSize: '0.65rem', marginLeft: '4px', background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px', color: '#64748b', fontWeight: 600}}>{suffix}</span></>;
+      return <><MapPin size={14}/> {nome} <span className="cnpj-suffix">{suffix}</span></>;
     }
     return <><MapPin size={14}/> {nome}</>;
   };
@@ -715,9 +715,9 @@ function App() {
           <div className="modal-content glass-panel" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">
-                <h2 style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                <h2 className="h2-modal-title">
                    {selectedEntity.nome.split(' (')[0]} 
-                   {selectedEntity.cnpj && <span style={{fontSize: '1rem', color: '#475569', background: '#f1f5f9', padding: '0.2rem 0.6rem', borderRadius: '1rem', border: '1px solid #e2e8f0'}}>CNPJ: {selectedEntity.cnpj}</span>}
+                   {selectedEntity.cnpj && <span className="cnpj-modal-badge">CNPJ: {selectedEntity.cnpj}</span>}
                 </h2>
                 <span>Extrato detalhado de cargas ({selectedEntity.cnpj ? 'Visão Filial PDR' : 'Visão Produtor'})</span>
               </div>
@@ -730,7 +730,7 @@ function App() {
               <div className="modal-stats glass-panel">
                  <div className="m-stat"><Scale size={18}/> <strong>Volume:</strong> {formatNumber(selectedEntity.pesoTotalEntregue)} kg</div>
                  <div className="m-stat"><Truck size={18}/> <strong>Lotações:</strong> {selectedEntity.totalCargas}</div>
-                 <div className="m-stat" style={{color: '#fbbf24'}}><Clock size={18}/> <strong>Pico Local:</strong> {selectedEntity.horarioPico}</div>
+                 <div className="m-stat m-stat-pico"><Clock size={18}/> <strong>Pico Local:</strong> {selectedEntity.horarioPico}</div>
               </div>
               
               <div className="table-wrapper">

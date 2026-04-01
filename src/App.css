@@ -525,3 +525,10 @@ body {
 .stat-icon.text-purple { background: #f3e8ff; border-color: #c4b5fd; }
 .stat-icon.text-cyan { background: #e0f2fe; border-color: #7dd3fc; }
 .stat-icon.text-gray { background: #f3f4f6; border-color: #d1d5db; }
+
+
+/* Utility classes for fixing lints */
+.cnpj-suffix { font-size: 0.65rem; margin-left: 4px; background: #f1f5f9; padding: 2px 4px; border-radius: 4px; color: #64748b; font-weight: 600; }
+.h2-modal-title { display: flex; align-items: center; gap: 0.5rem; }
+.cnpj-modal-badge { font-size: 1rem; color: #475569; background: #f1f5f9; padding: 0.2rem 0.6rem; border-radius: 1rem; border: 1px solid #e2e8f0; }
+.m-stat-pico { color: #fbbf24; }
