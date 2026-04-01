@@ -338,7 +338,8 @@ function App() {
     const matchName = d.nome.toLowerCase().includes(term);
     const matchCnpj = cleanTerm !== '' && d.cnpj && String(d.cnpj).replace(/\D/g, '').includes(cleanTerm);
     const matchPlaca = d.detalhesCargas.some(c => c.placa && c.placa.toLowerCase().includes(term));
-    return matchName || matchCnpj || matchPlaca;
+    const matchRomaneio = term !== '' && d.detalhesCargas.some(c => c.documento && String(c.documento).toLowerCase().includes(term));
+    return matchName || matchCnpj || matchPlaca || matchRomaneio;
   });
 
   const globalTotais = dataProdutores.reduce((acc, curr) => ({
@@ -530,7 +531,7 @@ function App() {
                       {activeTab === 'produtor' ? <User size={18} className="search-icon" /> : <Building2 size={18} className="search-icon" />}
                       <input 
                         type="text" 
-                        placeholder={`Pesquisar Nome, Placa ou CPF/CNPJ de ${activeTab === 'produtor' ? 'produtor' : 'filial'}...`}
+                        placeholder={`Pesquisar Nome, Placa, Romaneio ou CPF/CNPJ de ${activeTab === 'produtor' ? 'produtor' : 'filial'}...`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                       />
