@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import * as xlsx from 'xlsx';
-import { UploadCloud, CheckCircle, AlertCircle, AlertTriangle, Truck, MapPin, Scale, User, FileSpreadsheet, Users, X, Calendar, Clock, ClipboardType, Building2, EyeOff, Eye, ShieldAlert, BarChart2, TrendingUp, Filter, Hash } from 'lucide-react';
+
+import { UploadCloud, CheckCircle, AlertCircle, AlertTriangle, Truck, MapPin, Scale, User, FileSpreadsheet, Users, X, Calendar, Clock, ClipboardType, Building2, EyeOff, Eye, ShieldAlert, Hash } from 'lucide-react';
 import './App.css';
 
 interface CargaDetalhe {
@@ -16,7 +17,9 @@ interface CargaDetalhe {
   auditor: string;
   placa: string;
   produtor: string;
+  cnpj: string;
   naoAcompanhada: boolean;
+  divergencia?: string;
 }
 
 interface EntityData {
@@ -28,6 +31,9 @@ interface EntityData {
   declaradas: number;
   testadasPositivas: number;
   testadasNegativas: number;
+  pesoDeclaradas: number;
+  pesoPositivas: number;
+  pesoNegativas: number;
   participantes: number;
   outros: number;
   detalhesCargas: CargaDetalhe[];
@@ -63,7 +69,7 @@ function App() {
   const [dataProdutores, setDataProdutores] = useState<EntityData[]>([]);
   const [dataFiliais, setDataFiliais] = useState<EntityData[]>([]);
   const [alertasCriticos, setAlertasCriticos] = useState<AlertaCritico[]>([]);
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -74,6 +80,17 @@ function App() {
 
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(num);
+  };
+
+  const renderFilialNameWithCnpj = (unidade: string) => {
+    const parts = unidade.split(' (');
+    const nome = parts[0].split(' ').slice(0, 3).join(' ');
+    const cnpj = parts[1] ? parts[1].replace(')', '') : '';
+    if (cnpj.length >= 5) {
+      const suffix = cnpj.slice(-5);
+      return <><MapPin size={14}/> {nome} <span style={{fontSize: '0.65rem', marginLeft: '4px', background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px', color: '#64748b', fontWeight: 600}}>{suffix}</span></>;
+    }
+    return <><MapPin size={14}/> {nome}</>;
   };
 
   const processarAlertas = (todasCargas: CargaDetalhe[]) => {
@@ -111,11 +128,12 @@ function App() {
            if (tNeg > 0) resumo.push(`${tNeg} carga(s) com teste Negativo`);
            if (tPos > 0) resumo.push(`${tPos} Positiva(s)`);
            if (tDec > 0) resumo.push(`${tDec} Declarada(s)`);
-
+           const prodCnpjStr = cargasAlerta[0].cnpj ? ` [CNPJ/CPF: ***${cargasAlerta[0].cnpj.slice(-4)}]` : '';
+           
            novosAlertas.push({
                tipo: 'PLACA_SUSPEITA',
                nivel: 'CRITICO',
-               titulo: `Alerta de Testagem Contraditória: ${produtor}`,
+               titulo: `Alerta de Testagem Contraditória: ${produtor}${prodCnpjStr}`,
                descricao: `O produtor '${produtor}' acusou uma mistura de qualidade nas entregas. Ele possui: ${resumo.join(' misturadas com ')}. Abaixo o extrato das cargas divergentes em ordem cronológica.`,
                dadosReferencia: { produtor },
                timestamp: cargasAlerta[cargasAlerta.length - 1].timestamp,
@@ -134,6 +152,8 @@ function App() {
 
     setLoading(true);
     setError('');
+
+
 
     const reader = new FileReader();
 
@@ -195,8 +215,8 @@ function App() {
              hrNum = parseInt(hr.split(':')[0], 10);
           }
 
-          if (!pMap[nomeProdutor]) pMap[nomeProdutor] = { nome: nomeProdutor, cnpj: '', subitems: [], totalCargas: 0, pesoTotalEntregue: 0, declaradas: 0, testadasPositivas: 0, testadasNegativas: 0, participantes: 0, outros: 0, detalhesCargas: [], horasCount: {}, horarioPico: '' };
-          if (!fMap[keyFilial]) fMap[keyFilial] = { nome: displayFilial, cnpj: cnpjBaseFilial, subitems: [], totalCargas: 0, pesoTotalEntregue: 0, declaradas: 0, testadasPositivas: 0, testadasNegativas: 0, participantes: 0, outros: 0, detalhesCargas: [], horasCount: {}, horarioPico: '' };
+          if (!pMap[nomeProdutor]) pMap[nomeProdutor] = { nome: nomeProdutor, cnpj: '', subitems: [], totalCargas: 0, pesoTotalEntregue: 0, declaradas: 0, testadasPositivas: 0, testadasNegativas: 0, pesoDeclaradas: 0, pesoPositivas: 0, pesoNegativas: 0, participantes: 0, outros: 0, detalhesCargas: [], horasCount: {}, horarioPico: '' };
+          if (!fMap[keyFilial]) fMap[keyFilial] = { nome: displayFilial, cnpj: cnpjBaseFilial, subitems: [], totalCargas: 0, pesoTotalEntregue: 0, declaradas: 0, testadasPositivas: 0, testadasNegativas: 0, pesoDeclaradas: 0, pesoPositivas: 0, pesoNegativas: 0, participantes: 0, outros: 0, detalhesCargas: [], horasCount: {}, horarioPico: '' };
 
           const p = pMap[nomeProdutor];
           const f = fMap[keyFilial];
@@ -212,7 +232,8 @@ function App() {
           if (!p.subitems.includes(displayFilial)) p.subitems.push(displayFilial);
           if (!f.subitems.includes(nomeProdutor)) f.subitems.push(nomeProdutor);
 
-          const docNumRaw = carga['NÚMERO DOCUMENTO'] || carga['TIPO DOCUMENTO'] || '-';
+          // Tenta capturar o número do romaneio através de diversas nomenclaturas que a filial possa usar
+          const docNumRaw = carga['NÚMERO DOCUMENTO'] || carga['Nº DOC'] || carga['Cód'] || carga['CÓDIGO'] || carga['COD'] || carga['ROMANEIO'] || carga['TIPO DOCUMENTO'] || '-';
           const docNumParsed = !isNaN(parseInt(docNumRaw, 10)) ? parseInt(docNumRaw, 10) : null;
 
           const detalhe: CargaDetalhe = {
@@ -228,6 +249,7 @@ function App() {
              auditor: carga['CÓDIGO VISITA'] || carga['EMPRESA HARVEST'] || 'Indisponível',
              placa: carga['PLACA DO CAMINHÃO'] || '-',
              produtor: nomeProdutor,
+             cnpj: String(carga['CPF'] || carga['CNPJ'] || carga['CPF PRODUTOR'] || carga['CPF DO PRODUTOR'] || carga['CPF\/CNPJ'] || '').trim(),
              naoAcompanhada: naoAcompFlag
           };
           
@@ -237,10 +259,13 @@ function App() {
 
           if (resultadoTeste.includes('declarada')) {
             p.declaradas++; f.declaradas++;
+            p.pesoDeclaradas += peso; f.pesoDeclaradas += peso;
           } else if (resultadoTeste.includes('positiva')) {
             p.testadasPositivas++; f.testadasPositivas++;
+            p.pesoPositivas += peso; f.pesoPositivas += peso;
           } else if (resultadoTeste.includes('negativa')) {
             p.testadasNegativas++; f.testadasNegativas++;
+            p.pesoNegativas += peso; f.pesoNegativas += peso;
           } else if (resultadoTeste.includes('participante')) {
             p.participantes++; f.participantes++;
           } else {
@@ -307,7 +332,14 @@ function App() {
     activeData.sort((a,b) => b.totalCargas - a.totalCargas);
   }
 
-  const filteredData = activeData.filter(d => d.nome.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredData = activeData.filter(d => {
+    const term = searchTerm.toLowerCase();
+    const cleanTerm = term.replace(/\D/g, '');
+    const matchName = d.nome.toLowerCase().includes(term);
+    const matchCnpj = cleanTerm !== '' && d.cnpj && String(d.cnpj).replace(/\D/g, '').includes(cleanTerm);
+    const matchPlaca = d.detalhesCargas.some(c => c.placa && c.placa.toLowerCase().includes(term));
+    return matchName || matchCnpj || matchPlaca;
+  });
 
   const globalTotais = dataProdutores.reduce((acc, curr) => ({
     cargas: acc.cargas + curr.totalCargas,
@@ -320,7 +352,7 @@ function App() {
   }), { cargas: 0, peso: 0, declaradas: 0, positivas: 0, negativas: 0, participantes: 0, outros: 0 });
 
   const renderMiniTable = (cargas: CargaDetalhe[]) => (
-    <div className="table-wrapper" style={{ marginTop: '1.25rem' }}>
+    <div className="table-wrapper" >
        <table className="loads-table inline-mini-table">
          <thead>
            <tr>
@@ -348,7 +380,7 @@ function App() {
                </td>
                <td>
                   <div className="unit-cell" title={carga.unidade}>
-                    <MapPin size={14}/> {carga.unidade.split(' ').slice(0, 3).join(' ')}
+                    {renderFilialNameWithCnpj(carga.unidade)}
                   </div>
                </td>
                <td>
@@ -429,7 +461,7 @@ function App() {
                onClick={() => { setActiveTab('auditoria'); setSearchTerm(''); }}
             >
               <ShieldAlert size={18} className={alertasCriticos.length > 0 ? "pulse-icon" : ""}/> 
-              Auditoria de Fraude 
+              Auditoria de Divergências 
               {alertasCriticos.length > 0 && <span className="crit-badge">{alertasCriticos.length}</span>}
             </button>
           </div>
@@ -438,7 +470,7 @@ function App() {
              {activeTab === 'auditoria' && (
                 <div className="auditoria-header">
                    <h2>Painel de Auditoria Investigativa</h2>
-                   <p>Aqui o algoritmo cruza quebras de rotina, rastreio de placas e furos de documentos em um espaço contínuo para apontar desvios operacionais ou fraudes de testagem.</p>
+                   <p>Aqui o algoritmo cruza quebras de rotina, rastreio de placas e furos de documentos em um espaço contínuo para apontar desvios operacionais ou divergências de testagem.</p>
                    <button className="btn-outline crt-reset" onClick={() => { setDataProdutores([]); setDataFiliais([]); setSearchTerm(''); }}>
                       Analisar Outra Planilha
                     </button>
@@ -479,17 +511,17 @@ function App() {
                       </div>
                     </div>
                     <div className="stat-item">
-                      <CheckCircle className="stat-icon text-green" />
+                      <AlertTriangle className="stat-icon text-red" />
                       <div className="stat-info">
                         <span className="stat-label">Negativas</span>
-                        <span className="stat-value text-green">{formatNumber(globalTotais.negativas)}</span>
+                        <span className="stat-value text-red">{formatNumber(globalTotais.negativas)}</span>
                       </div>
                     </div>
                     <div className="stat-item">
-                      <AlertTriangle className="stat-icon text-red" />
+                      <CheckCircle className="stat-icon text-green" />
                       <div className="stat-info">
                         <span className="stat-label">Positivas</span>
-                        <span className="stat-value text-red">{formatNumber(globalTotais.positivas)}</span>
+                        <span className="stat-value text-green">{formatNumber(globalTotais.positivas)}</span>
                       </div>
                     </div>
                   </div>
@@ -498,13 +530,13 @@ function App() {
                       {activeTab === 'produtor' ? <User size={18} className="search-icon" /> : <Building2 size={18} className="search-icon" />}
                       <input 
                         type="text" 
-                        placeholder={`Pesquisar ${activeTab === 'produtor' ? 'produtor' : 'filial'}...`}
+                        placeholder={`Pesquisar Nome, Placa ou CPF/CNPJ de ${activeTab === 'produtor' ? 'produtor' : 'filial'}...`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                       />
                     </div>
                     <div className="filter-group">
-                      <select className="filter-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                      <select title="Filtrar" className="filter-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                          <option value="padrao">Padrão Original (Sem Filtro)</option>
                          <option value="volume">Maior Volume (Kg)</option>
                          <option value="positivas">Mais Cargas Positivas</option>
@@ -513,8 +545,8 @@ function App() {
                          <option value="cargas">Maior Lotações Totais</option>
                       </select>
                       {(searchTerm !== '' || sortBy !== 'padrao') && (
-                        <button className="btn-outline" onClick={() => { setSearchTerm(''); setSortBy('padrao'); }} style={{ color: '#dc2626', borderColor: '#fecaca', background: '#fef2f2' }}>
-                          <X size={16} style={{ marginBottom: '-3px', marginRight: '4px' }}/>
+                        <button className="btn-outline clear-filter-btn" onClick={() => { setSearchTerm(''); setSortBy('padrao'); }}>
+                          <X size={16} className="x-icon-clear"/>
                           Limpar
                         </button>
                       )}
@@ -536,8 +568,7 @@ function App() {
                 return (
                   <div 
                     key={idx} 
-                    className="card glass-panel clickable-card" 
-                    style={{ '--stagger': idx } as React.CSSProperties}
+                    className={`card glass-panel clickable-card ${hasAlert && totalMapeadas > 0 && activeTab === 'produtor' ? 'card-alert-red' : ''}`}
                     onClick={() => setSelectedEntity({ ...entity })}
                   >
                     <div className="card-header">
@@ -547,7 +578,7 @@ function App() {
                         </div>
                         <h3>
                             {entity.nome.split(' (')[0]}
-                            {entity.cnpj && <div style={{fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-secondary)', marginTop: '4px'}}><Hash size={10}/> {entity.cnpj}</div>}
+                            {entity.cnpj && activeTab === 'filial' && <div className="cnpj-badge"><Hash size={10}/> {entity.cnpj}</div>}
                         </h3>
                       </div>
                       <div className="unidades-tags">
@@ -589,7 +620,7 @@ function App() {
                       </div>
                       
                       {entity.horarioPico !== 'N/D' && (
-                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#fffbeb', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.85rem', color: '#92400e', border: '1px solid #fde68a', fontWeight: 600 }}>
+                         <div className="pico-alert">
                              <Clock size={16} className="text-orange" />
                              <strong>Horário de Pico:</strong> {entity.horarioPico}
                          </div>
@@ -598,7 +629,10 @@ function App() {
                       <div className="results-breakdown dynamic-grid">
                         <div className="result-pill gray">
                           <span className="r-label">Declarada</span>
-                          <span className="r-val">{entity.declaradas}</span>
+                          <span className="r-val flex-column-center">
+                             {formatNumber(entity.pesoDeclaradas)} kg
+                             <small className="peso-small">({entity.declaradas} un)</small>
+                          </span>
                         </div>
                         {(entity.participantes > 0 || globalTotais.participantes > 0) && (
                           <div className="result-pill blue">
@@ -606,13 +640,19 @@ function App() {
                             <span className="r-val">{entity.participantes}</span>
                           </div>
                         )}
-                        <div className="result-pill green">
-                          <span className="r-label">Negativas</span>
-                          <span className="r-val">{entity.testadasNegativas}</span>
-                        </div>
                         <div className="result-pill red">
+                          <span className="r-label">Negativas</span>
+                          <span className="r-val flex-column-center">
+                             {formatNumber(entity.pesoNegativas)} kg
+                             <small className="peso-small">({entity.testadasNegativas} un)</small>
+                          </span>
+                        </div>
+                        <div className="result-pill green">
                           <span className="r-label">Positivas</span>
-                          <span className="r-val">{entity.testadasPositivas}</span>
+                          <span className="r-val flex-column-center">
+                             {formatNumber(entity.pesoPositivas)} kg
+                             <small className="peso-small">({entity.testadasPositivas} un)</small>
+                          </span>
                         </div>
                       </div>
                       
@@ -622,17 +662,6 @@ function App() {
                           <span className="extra-val">{entity.outros}</span>
                         </div>
                       )}
-
-                      {hasAlert && totalMapeadas > 0 && activeTab === 'produtor' && (
-                        <div className="alert-strip">
-                          <AlertTriangle size={14} />
-                          <div>
-                            <strong>ALERTA DE FRAUDE:</strong> 
-                            Monitoramento ativo (Negativas: {entity.testadasNegativas} após Positivas)
-                          </div>
-                        </div>
-                      )}
-                      
                       <button className="view-details-btn">
                         Ver Extrato de Cargas
                       </button>
@@ -655,7 +684,7 @@ function App() {
                  <div className="alertas-empty">
                    <ShieldAlert size={48} className="text-green"/>
                    <h2>Nenhuma anomalia detectada</h2>
-                   <p>Todas as placas e cadernetas de documento conferidas pelo sistema estão dentro dos padrões normais. Nada cruzou como tentativa de fraude até agora.</p>
+                   <p>Todas as placas e cadernetas de documento conferidas pelo sistema estão dentro dos padrões normais. Nada cruzou como divergência crítica até agora.</p>
                  </div>
                ) : (
                  <div className="alertas-list">
@@ -712,7 +741,7 @@ function App() {
                       <th>Resultado Teste</th>
                       <th>Acompanhamento</th>
                       <th>Auditor (Cod)</th>
-                      <th>Placa/Doc</th>
+                      <th>Cód Romaneio/Placa</th>
                       <th className="align-right">Peso (KG)</th>
                     </tr>
                   </thead>
@@ -728,7 +757,7 @@ function App() {
                         <td>
                           {!selectedEntity.cnpj ? (
                             <div className="unit-cell" title={carga.unidade}>
-                              <MapPin size={14}/> {carga.unidade.split(' ').slice(0, 3).join(' ')}
+                              {renderFilialNameWithCnpj(carga.unidade)}
                             </div>
                           ) : (
                             <div 
@@ -749,8 +778,8 @@ function App() {
                         </td>
                         <td>
                            <span className={`status-badge ${
-                              carga.resultadoTeste.toLowerCase().includes('positiva') ? 'bg-red' : 
-                              carga.resultadoTeste.toLowerCase().includes('negativa') ? 'bg-green' : 
+                              carga.resultadoTeste.toLowerCase().includes('positiva') ? 'bg-green' : 
+                              carga.resultadoTeste.toLowerCase().includes('negativa') ? 'bg-red' : 
                               carga.resultadoTeste.toLowerCase().includes('declarada') ? 'bg-gray' : 'bg-blue'
                            }`}>
                              {carga.resultadoTeste}
@@ -771,9 +800,9 @@ function App() {
                           <span className="auditor-cell"><ClipboardType size={14}/> {carga.auditor}</span>
                         </td>
                         <td>
-                          <div className="plate-cell">
-                             <div className="doc-num">{carga.documento}</div>
-                             <div className="plate-num">{carga.placa}</div>
+                          <div className="plate-cell plate-cell-col">
+                             <div className="doc-num doc-bold">{carga.documento}</div>
+                             <div className="plate-num plate-small">{carga.placa}</div>
                           </div>
                         </td>
                         <td className="align-right peso-cell">
@@ -788,6 +817,8 @@ function App() {
           </div>
         </div>
       )}
+
+
     </div>
   );
 }
