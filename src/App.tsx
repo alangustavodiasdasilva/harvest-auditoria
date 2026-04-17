@@ -5,6 +5,7 @@ import { UploadCloud, CheckCircle, AlertCircle, AlertTriangle, Truck, MapPin, Sc
 import './App.css';
 
 interface CargaDetalhe {
+  id: string;
   data: string;
   horario: string;
   timestamp: number;
