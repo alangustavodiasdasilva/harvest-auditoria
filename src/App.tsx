@@ -976,8 +976,8 @@ function App() {
                               <p>Realize o batimento automático entre os dados da sua inspeção e o consolidado corporativo.</p>
                            </div>
                            <a 
-                              href="./modelo_comparativo.xlsx" 
-                              download="modelo_comparativo.xlsx"
+                              href="./modelo_final_auditoria.xlsx" 
+                              download="modelo_final_auditoria.xlsx"
                               className="btn-download-model"
                               style={{ marginTop: '5px' }}
                            >
