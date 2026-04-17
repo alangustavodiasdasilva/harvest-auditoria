@@ -403,6 +403,8 @@ function App() {
     };
 
     reader.readAsBinaryString(file);
+  };
+
   // Helper para normalizar textos para comparação (remove acentos, espaços e padroniza caixa)
   const normalizeText = (str: string) => {
      if (!str) return '';
