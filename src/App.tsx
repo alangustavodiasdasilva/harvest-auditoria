@@ -976,8 +976,8 @@ function App() {
                               <p>Realize o batimento automático entre os dados da sua inspeção e o consolidado corporativo.</p>
                            </div>
                            <a 
-                              href="./main.xlsx" 
-                              download="main.xlsx"
+                              href="/harvest-auditoria/modelo_audit_final.xlsx" 
+                              download="modelo_audit_final.xlsx"
                               className="btn-download-model"
                               style={{ marginTop: '5px' }}
                            >
