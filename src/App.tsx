@@ -403,6 +403,10 @@ function App() {
     };
 
     reader.readAsBinaryString(file);
+  // Helper para normalizar textos para comparação (remove acentos, espaços e padroniza caixa)
+  const normalizeText = (str: string) => {
+     if (!str) return '';
+     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
   };
 
   const handleComparativoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -491,21 +495,26 @@ function App() {
             const produtorAcum = String(getVal(acum, ['PRODUTOR', 'NOME PRODUTOR', 'CLIENTE', 'NOME DO PRODUTOR']) || 'NÃO INFORMADO').trim();
             const placaAcum = String(getVal(acum, ['PLACA DO CAMINHÃO', 'PLACA', 'VEICULO']) || '-').trim();
 
-            const divProdutor = original.produtor.trim() !== produtorAcum;
-            const divPlaca = original.placa.trim() !== placaAcum;
+            const divProdutor = normalizeText(original.produtor) !== normalizeText(produtorAcum);
+            const divPlaca = normalizeText(original.placa) !== normalizeText(placaAcum);
             const divPeso = Math.abs(original.peso - pesoAcum) > 1; // Tolerância de 1kg
-            const divTeste = original.resultadoTeste.trim().toLowerCase() !== testeAcum.toLowerCase();
+            const tOrig = original.resultadoTeste.trim().toLowerCase();
+            const tAcum = testeAcum.toLowerCase();
+            
+            // Regra especial: Declarada e Positiva são compatíveis. Divergência real apenas se envolver 'Negativa'.
+            const matchesSimplificado = tOrig === tAcum;
+            const isCompativelDecPos = (tOrig.includes('declarada') && tAcum.includes('positiva')) || 
+                                      (tOrig.includes('positiva') && tAcum.includes('declarada'));
+                                      
+            const divTeste = !matchesSimplificado && !isCompativelDecPos;
 
             let status = 'OK';
-            if (divProdutor || divPlaca || divPeso || divTeste) {
-               if (divProdutor || divPeso) {
-                  status = 'POSSÍVEL RATEIO';
-               } else {
-                  status = 'DIVERGENTE';
-               }
+            if (divTeste) {
+               status = 'DIVERGENTE'; // Erro de teste é prioridade máxima (Vermelho)
+            } else if (divProdutor || divPlaca || divPeso) {
+               status = 'POSSÍVEL RATEIO'; // Diferença de peso/produtor mas teste OK (Amarelo)
             }
-
-            resultados.push({
+             resultados.push({
               romaneio: romaneioAcum,
               status: status,
               original: {
