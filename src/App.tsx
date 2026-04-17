@@ -175,6 +175,25 @@ function App() {
     setAlertasCriticos(novosAlertas.sort((a,b) => b.timestamp - a.timestamp));
   };
 
+  const handleDownloadModel = async () => {
+    try {
+      const response = await fetch('/harvest-auditoria/modelo_audit_final.xlsx');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'modelo_audit_final.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Download failed', err);
+      // Fallback
+      window.location.href = '/harvest-auditoria/modelo_audit_final.xlsx';
+    }
+  };
+
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -975,14 +994,13 @@ function App() {
                               <h3>Conferência Cruzada de Romaneios</h3>
                               <p>Realize o batimento automático entre os dados da sua inspeção e o consolidado corporativo.</p>
                            </div>
-                           <a 
-                              href="/harvest-auditoria/modelo_audit_final.xlsx" 
-                              download="modelo_audit_final.xlsx"
+                           <button 
+                              onClick={handleDownloadModel}
                               className="btn-download-model"
-                              style={{ marginTop: '5px' }}
+                              style={{ marginTop: '5px', cursor: 'pointer', border: '1px solid #3b82f6' }}
                            >
                               <FileSpreadsheet size={16} /> Baixar Modelo Corporativo (.xlsx)
-                           </a>
+                           </button>
                         </div>
                      </div>
 
