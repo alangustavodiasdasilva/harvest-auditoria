@@ -250,9 +250,15 @@ function App() {
           const resultadoTeste = resultadoTesteOriginal.toLowerCase();
           const naoAcompFlag = String(getVal(carga, ['NÃO ACOMPANHADA', 'ACOMPANHADA']) || '').trim().toLowerCase() === 'sim';
           
-          const dt = getVal(carga, ['DATA']) || '';
+          const dataRaw = getVal(carga, ['DATA', 'DATA EMISSÃO', 'EMISSÃO', 'DT_EMISSAO']);
+          let dt = String(dataRaw || '');
+          if (typeof dataRaw === 'number' && dataRaw > 30000) {
+             const baseDate = new Date(1899, 11, 30);
+             dt = new Date(baseDate.getTime() + dataRaw * 86400000).toLocaleDateString('pt-BR');
+          }
+
           const hr = getVal(carga, ['HORÁRIO', 'HORA']) || '';
-          const ts = parseDataHora(String(dt), String(hr));
+          const ts = parseDataHora(dt, String(hr));
           
           let hrNum = -1;
           if (hr && hr.includes(':')) {
