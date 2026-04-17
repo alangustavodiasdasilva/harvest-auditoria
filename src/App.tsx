@@ -969,10 +969,22 @@ function App() {
           {activeTab === 'comparativo' && (
               <div className="comparativo-panel glass-panel">
                  <div className="comp-top-bar">
-                    <div className="comp-title-area">
-                       <h3>Conferência Cruzada de Romaneios</h3>
-                       <p>Realize o batimento automático entre os dados da sua inspeção e o consolidado corporativo.</p>
-                    </div>
+                     <div className="comp-title-area">
+                        <div className="flex-between align-start">
+                           <div>
+                              <h3>Conferência Cruzada de Romaneios</h3>
+                              <p>Realize o batimento automático entre os dados da sua inspeção e o consolidado corporativo.</p>
+                           </div>
+                           <a 
+                              href="./modelo_comparativo.xlsx" 
+                              download="modelo_comparativo.xlsx"
+                              className="btn-download-model"
+                              style={{ marginTop: '5px' }}
+                           >
+                              <FileSpreadsheet size={16} /> Baixar Modelo Corporativo (.xlsx)
+                           </a>
+                        </div>
+                     </div>
 
                     <div className="comp-controls">
                        <div className="control-item">
