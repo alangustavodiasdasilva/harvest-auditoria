@@ -403,8 +403,10 @@ const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   };
 
   reader.readAsBinaryString(file);
-  // Helper para normalizar textos para comparação (remove acentos, espaços e padroniza caixa)
-  const normalizeText = (str: string) => {
+};
+
+// Helper para normalizar textos para comparação (remove acentos, espaços e padroniza caixa)
+const normalizeText = (str: string) => {
     if (!str) return '';
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
   };
